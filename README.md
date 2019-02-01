@@ -1,6 +1,8 @@
 # DotConnect
 line connected temporal scatterplot
 
+This piece of visualization is written based on [D3.js](https://d3js.org/). 
+
 The visualization draws two consecutive time frames together. Line connects the pair of before and after.
 Before dot is drawn with an opacity to distinguish from the after. 
 If the data has multiple time frames, clicking the 'next pair' button will switch to next one.
@@ -18,9 +20,10 @@ If the data has multiple time frames, clicking the 'next pair' button will switc
 
 ### to run 
 [1] set up a server
+
 enter the download directory, to run below command (python v3)
 
-pytyon -m http.server 20897
+python -m http.server 20897
 
 [2] open the visualization
 open below url in browser
