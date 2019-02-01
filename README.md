@@ -26,6 +26,7 @@ enter the download directory, to run below command (python v3)
 python -m http.server 20897
 
 [2] open the visualization
-open below url in browser
+
+open below url in your browser
 
 http://localhost:20897/scatterplot.html
