@@ -3,9 +3,9 @@ line connected temporal scatterplot
 
 The visualization draws two consecutive time frames together. Line connects the pair of before and after.
 Before dot is drawn with an opacity to distinguish from the after. 
-If the data has multiple time frames, clicking the 'next' button will switch to next one.
+If the data has multiple time frames, clicking the 'next pair' button will switch to next one.
 
-<img src="https://github.com/deardeer/DotConnect/blob/master/img.png" height="300">
+<img src="https://github.com/deardeer/DotConnect/blob/master/img.png" height="400">
 
 
 
