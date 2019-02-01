@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.dot {
+  stroke: #000;
+  opacity: 0.2
+}
+.dot-second
+{
+  stroke-width:1px;
+  stroke: #000;
+}
+
+</style>
+<body>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<div style="padding-bottom: 20px; margin: 20px 20px 20px 20px">
+<button onclick="next()">Next Pair </button>
+<span id="info" style="font-size: 20px"></span>
+<br>
+<!-- <span> connection 
+  <input type="checkbox" id='linecheck' value="connection"> line</input> 
+</span> -->
+</div>
+<div id="draw">
+</div>
+<script>
+
+var margin = {top: 20, right: 60, bottom: 30, left: 40},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var x = d3.scaleLinear()
+    .range([0, width]);
+
+var y = d3.scaleLinear()
+    .range([height, 0]);
+
+var color = d3.scaleOrdinal(d3.schemeCategory10);
+
+var xAxis = d3.axisBottom(x);
+
+var yAxis = d3.axisLeft(y);
+
+var svg = d3.select("#draw").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+    .on("keypress", function() {
+    if(d3.event.keyCode === 32 || d3.event.keyCode === 13){
+    console.log("Congrats, you pressed enter or space!")
+    }
+  })
+
+g_Data = {}
+g_TimeStepNum = -1
+g_timeStep = -1
+g_ConnectionType = 'curve' //'line'
+
+d3.csv("data_1.csv", function(error, data) {
+  if (error) throw error;
+
+  data.forEach(function(d) {
+    if(g_TimeStepNum == -1){
+      g_TimeStepNum = (Object.keys(d).length - 1)/2
+    }
+    // d.xy = []
+    for(var i = 0; i < g_TimeStepNum; i ++){
+      d['x_' + i] = +d['x_' + i] 
+      d['y_' + i] = +d['y_' + i] 
+    }
+    console.log('d',d);
+  });
+
+  g_Data = data;
+
+  var xMin, xMax, yMin, yMax;
+  for(var i = 0; i < g_TimeStepNum; i ++){
+      xMin_temp = d3.extent(data, function(d) { return d['x_' + i];})[0]
+      xMax_temp = d3.extent(data, function(d) { return d['x_' + i];})[1]
+
+      yMin_temp = d3.extent(data, function(d) { return d['y_' + i];})[0]
+      yMax_temp = d3.extent(data, function(d) { return d['y_' + i];})[1]
+    if(i == 0){
+      xMin = xMin_temp
+      xMax = xMax_temp
+      yMin = yMin_temp
+      yMax = yMax_temp
+      continue;
+    }
+    if(xMax < xMax_temp)
+      xMax = xMax_temp
+    if(xMin > xMin_temp)
+      xMin = xMin_temp
+
+    if(yMax < yMax_temp)
+      yMax = yMax_temp
+    if(yMin > yMin_temp)
+      yMin = yMin_temp
+  }
+  yMax += (yMax - yMin) * 0.05
+  yMin -= (yMax - yMin) * 0.05
+  xMax += (xMax - xMin) * 0.05
+  xMin -= (xMax - xMin) * 0.05
+  console.log(' x ', xMin, xMax, yMax, yMin)
+
+  x.domain([xMin, xMax]).nice(); //d3.extent(data, function(d) { return d.xy[0][0]; })
+  y.domain([yMin, yMax]).nice(); //d3.extent(data, function(d) { return d.xy[0][1]; })
+
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis)
+    .append("text")
+      .attr("class", "label")
+      .attr("x", width)
+      .attr("y", -6)
+      .style("text-anchor", "end")
+      .text("Sepal Width (cm)");
+
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+    .append("text")
+      .attr("class", "label")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Sepal Length (cm)")
+
+  //draw class
+  next();  
+ 
+  var legend = svg.selectAll(".legend")
+      .data(color.domain())
+      .enter().append("g")
+      .attr("class", "legend")
+      .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+  legend.append("rect")
+      .attr("x", width + 5)
+      .attr("width", 18)
+      .attr("height", 18)
+      .style("fill", color);
+
+  legend.append("text")
+      .attr("x", width + 25)
+      .attr("y", 9)
+      .attr("dy", ".35em")
+      .style("text-anchor", "begin")
+      .text(function(d) { return d; });
+
+});
+
+function next(){
+
+  g_timeStep += 1;
+  if(g_timeStep >= g_TimeStepNum - 1){
+    g_timeStep = 0
+  }
+
+  var svg = d3.select("#draw svg g");
+
+  var lineGenerator = d3.line()
+                      .curve(d3.curveCardinal);
+
+  if(svg.selectAll('.dot').empty()){
+    //new 
+    svg.selectAll(".dot")
+    .data(g_Data)
+    .enter().append("circle")
+    .attr("class", "dot")
+    .attr("r", 5)
+    .attr("cx", function(d) { return x(d['x_' + g_timeStep]); })
+    .attr("cy", function(d) { return y(d['y_' + g_timeStep]); })
+    .style("fill", function(d) { return color(d.class); });
+
+    if(g_TimeStepNum > 1){
+
+       svg.selectAll(".dot-second")
+          .data(g_Data)
+          .enter().append("circle")
+          .attr("class", "dot-second")
+          .attr("r", 5)
+          .attr("cx", function(d) { return x(d['x_' + (g_timeStep + 1)]); })
+          .attr("cy", function(d) { return y(d['y_' + (g_timeStep + 1)]); })
+          .style("fill", function(d) { return color(d.class); });
+
+      if(g_ConnectionType == 'line'){
+        svg.selectAll('.dot-connection')
+           .data(g_Data)
+           .enter()
+           .append('line')
+           .attr('class', 'dot-connection')
+           .attr('x1', function(d) { return x(d['x_' + (g_timeStep)]); })
+           .attr('x2', function(d) { return x(d['x_' + (g_timeStep + 1)]); })
+           .attr("y1", function(d) { return y(d['y_' + (g_timeStep)]); })
+           .attr("y2", function(d) { return y(d['y_' + (g_timeStep + 1)]); })
+          .attr("stroke", function(d) { return color(d.class); })
+          .attr("stroke-width", 2)
+          .attr("fill", "none");
+      }else if(g_ConnectionType == 'curve'){
+
+        var path = d3.path();
+        path.moveTo(100, 200);
+        path.arcTo(100,200,150,150,50)
+
+        console.log(' here ? ', path.toString())
+         svg.selectAll('.dot-connection')
+           .data(g_Data)
+           .enter()
+           .append('path')
+           .attr('class', 'dot-connection')
+           .attr('d', function(d){
+
+            //get length
+            var maxDif = Math.sqrt(
+              Math.pow((x(d['x_' + (g_timeStep + 1)]) - x(d['x_' + (g_timeStep)])), 2) + 
+              Math.pow((y(d['y_' + (g_timeStep + 1)]) - y(d['y_' + (g_timeStep)])), 2)
+            ) * 0.1
+
+            return lineGenerator([
+              [x(d['x_' + (g_timeStep)]), y(d['y_' + (g_timeStep)])],
+              [0.5 * (x(d['x_' + (g_timeStep + 1)]) + x(d['x_' + (g_timeStep)])) + Math.random() * maxDif,
+               0.5 * (y(d['y_' + (g_timeStep + 1)]) + y(d['y_' + (g_timeStep)])) + Math.random() * maxDif],
+              [x(d['x_' + (g_timeStep + 1)]), y(d['y_' + (g_timeStep + 1)])]
+            ]) 
+          }) 
+          .attr("stroke", function(d) { return color(d.class); })
+          .attr("stroke-width", 2)
+          .attr("fill", "none");
+      }
+        document.getElementById('info').innerHTML = 'time step ' + g_timeStep + ' vs ' + (g_timeStep + 1);
+      }else
+        document.getElementById('info').innerHTML = 'time step ' + g_timeStep;
+  }else{
+    console.log(' ttt2 ', g_timeStep, g_TimeStepNum)
+   svg.selectAll(".dot")
+    // .data(data)
+    .each(function(d){
+      d3.select(this)
+        .attr("cx", function(d) { return x(d['x_' + g_timeStep]); })
+        .attr("cy", function(d) { return y(d['y_' + g_timeStep]); })
+    });
+
+    if(g_TimeStepNum > 1){
+      svg.selectAll(".dot-second")
+         // .style('visibility', 'hidden')
+         .each(function(d){
+          d3.select(this)
+            .attr("cx", function(d) { return x(d['x_' + (g_timeStep + 1)]); })
+            .attr("cy", function(d) { return y(d['y_' + (g_timeStep + 1)]); })
+      })
+      if(g_ConnectionType == "line"){
+        svg.selectAll('.dot-connection')
+           .attr('x1', function(d) { return x(d['x_' + (g_timeStep)]); })
+           .attr('x2', function(d) { return x(d['x_' + (g_timeStep + 1)]); })
+           .attr("y1", function(d) { return y(d['y_' + (g_timeStep)]); })
+           .attr("y2", function(d) { return y(d['y_' + (g_timeStep + 1)]); })
+      }else if(g_ConnectionType == 'curve'){
+        svg.selectAll('.dot-connection')
+            .attr('d', function(d){
+
+            //get length
+            var maxDif = Math.sqrt(
+              Math.pow((x(d['x_' + (g_timeStep + 1)]) - x(d['x_' + (g_timeStep)])), 2) + 
+              Math.pow((y(d['y_' + (g_timeStep + 1)]) - y(d['y_' + (g_timeStep)])), 2)
+            ) * 0.1
+            
+            return lineGenerator([
+              [x(d['x_' + (g_timeStep)]), y(d['y_' + (g_timeStep)])],
+              [0.5 * (x(d['x_' + (g_timeStep + 1)]) + x(d['x_' + (g_timeStep)])) + Math.random() * maxDif,
+               0.5 * (y(d['y_' + (g_timeStep + 1)]) + y(d['y_' + (g_timeStep)])) + Math.random() * maxDif],
+              [x(d['x_' + (g_timeStep + 1)]), y(d['y_' + (g_timeStep + 1)])]
+            ]) 
+          }) 
+      }
+    }
+    document.getElementById('info').innerHTML = 'time step ' + g_timeStep + ' vs ' + (g_timeStep + 1);
+    console.log('ttt ', g_timeStep, 'time step ' + g_timeStep + ' vs ' + (g_timeStep + 1))
+  }
+
+
+// var legend = svg.selectAll(".legend")
+}
+
+</script>
